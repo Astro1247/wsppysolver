@@ -24,7 +24,6 @@ def find_solutions(initial_solvers):
         if solved is None:
             s.find_actions()
             for action in s.actions:
-                print(f'Found {len(s.actions)} actions')
                 try:
                     new_solver = (move_colors(s, action['water'].bottle.index, action['compatible'].bottle.index))
                 except Exception as e:
@@ -33,25 +32,37 @@ def find_solutions(initial_solvers):
                 new_solver.find_actions()
                 if new_solver.solved:
                     solved = new_solver
-                    print('SOLVED! {}'.format(new_solver.get_map()))
-                    return new_solver
+                    print('SOLVED! {}\nDone {} moves'.format(new_solver.get_map(), done_moves))
+                    return None
                 elif len(new_solver.actions) > 0:
                     solvers.append(new_solver)
                 else:
-                    print('No actions in {}'.format(new_solver.get_map()))
+                    #print('No actions in {}'.format(new_solver.get_map()))
+                    pass
     if len(solvers) > 0:
         return solvers
     else:
-        print('No more actions.')
+        #print('No more actions.')
         return None
 
+
+def solution_find_worker(slvs):
+    while slvs is not None:
+        slvs = find_solutions(slvs)
+        threads = []
+        for slv in slvs:
+            thread = Thread(target=solution_find_worker, args=([slv],))
+            threads.append(thread)
+            thread.start()
+        for t in threads:
+            t.join()
 
 
 if __name__ == '__main__':
     print("Welcome to Water Sorting Puzzle Solver developed by Astro1247 [WIP]")  # TODO remove [WIP] tag
     print("Please, input colors or enter empty iput when done")
     #map = [[1, 1, 1, 0], [2, 2, 2, 1], [2, 0, 0, 0], [0, 0, 0, 0]]  # [[]]
-    map = [
+    map2 = [
         [1,2,3,4],
         [3,5,6,6],
         [7,8,9,4],
@@ -63,6 +74,11 @@ if __name__ == '__main__':
         [9,6,4,7],
         [2,8,2,1],
         [0,0,0,0],
+        [0,0,0,0]
+    ]
+    map3 = [
+        [1,2,1,2],
+        [2,1,2,1],
         [0,0,0,0]
     ]
     data = ''  # input("Enter color (or just press ENTER):")
@@ -79,8 +95,14 @@ if __name__ == '__main__':
         except ValueError:
             print("Invalid input, please try again")
         data = input("Enter color (or just press ENTER):")
-    slvs = [Solver(map)]
-    slvs = find_solutions(slvs)
-    while slvs is not None:
-        slvs = find_solutions(slvs)
+    slv = Solver(map)
+    slv.find_actions()
+    slvs = find_solutions([slv])
+    threads = []
+    for slv in slvs:
+        thread = Thread(target=solution_find_worker, args=([slv],))
+        threads.append(thread)
+        thread.start()
+    for t in threads:
+        t.join()
     print('Job finished')
