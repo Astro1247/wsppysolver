@@ -86,9 +86,15 @@ class Bottle(object):
             raise OverflowError("Bottle has too many elements {}".format(len(self.data)))
         elif len(self.data) == 4:
             raise OverflowError("Bottle is already full")
-        else:
+        elif len(self.data) == 0 or self.data[-1].color != color.color:
+            color.bottle = self
             self.data.append(color)
             self.check_solved()
+        else:
+            self.data[-1].size += color.size
+            self.data[-1].bottle_position['to'] += color.size
+            self.check_solved()
+            del color
 
     def get_mapped_data(self):
         mapped = []
@@ -138,14 +144,27 @@ class Solver(object):
         self.check_solved()
         if self.solved:
             return []
-        bottles_tops = [bottle.get_top_data() for bottle in self.bottles]
+        #bottles_tops = [bottle.get_top_data() for bottle in self.bottles]
+        #from copy import copy
+        #dumped = copy(bottles_tops)
         possible_actions = []
-        for top in bottles_tops:
+        for bottle in self.bottles:
+            top = bottle.get_top_data()
+            #if [bottle.get_mapped_data() for bottle in self.bottles] != [bottle.bottle.get_mapped_data() for bottle in dumped]:
+            if top.color != self.bottles[top.bottle.index].get_top_data().color:
+                print("ACHTUNG!!!") #TODO change water bottle after moving
             if top.color == 0:
                 continue
-            compatibles = list(filter(
-                lambda target: (target.color == 0 or target.color == top.color) and target.bottle_position['to'] + top.size <= 4,
-                bottles_tops))
+            #compatibles = list(filter(
+            #    lambda target: (target.color == 0 or target.color == top.color) and target.bottle_position['to'] + top.size <= 4,
+            #    bottles_tops))
+            compatibles = []
+            for target_bottle in self.bottles:
+                target = target_bottle.get_top_data()
+                if top.bottle == target.bottle:
+                    continue
+                if (target.color == 0 or target.color == top.color) and target.bottle_position['to'] + top.size <= 4:
+                    compatibles.append(target)
             if len(compatibles) > 0:
                 for compatible in compatibles:
                     if compatible.bottle != top.bottle \
@@ -175,7 +194,7 @@ class Solver(object):
             raise ValueError('Cannot move water from empty bottle')
         elif source_bottle.get_top_data().color != target_bottle.get_top_data().color \
                 and target_bottle.get_top_data().color != 0:
-            raise ValueError(f'Colors in bottles are incompatible {source_bottle.get_top_data().color} into {target_bottle.get_top_data().color}')
+            raise ValueError(f'Colors in bottles are incompatible {source_bottle.get_mapped_data()} into {target_bottle.get_mapped_data()}')
         elif source_bottle.get_top_data().size + target_bottle.get_top_data().bottle_position['to'] > 4:
             raise OverflowError("Target bottle will be overflowed")
         target_water = target_bottle.get_top_data()
