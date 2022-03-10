@@ -57,7 +57,7 @@ class Bottle(object):
         self.check_solved()
 
     def check_solved(self):
-        if len(set(self.data)) == 1 and len(self.data) == 4:
+        if (len(self.data) == 1 and self.data[0].size == 4) or len(self.data) == 0:
             self.solved = True
         return self.solved
 
@@ -129,6 +129,8 @@ class Solver(object):
             self.actions = []
 
     def check_solved(self):
+        for bottle in self.bottles:
+            bottle.check_solved()
         self.solved = all(bottle.solved for bottle in self.bottles)
         return self.solved
 
@@ -146,16 +148,18 @@ class Solver(object):
                 bottles_tops))
             if len(compatibles) > 0:
                 for compatible in compatibles:
-                    if compatible.bottle != top.bottle:
+                    if compatible.bottle != top.bottle \
+                            and top.size != 4 \
+                            and not (compatible.color == 0 and len(top.bottle.data) == 1):
                         possible_actions.append({'compatible': compatible, 'water': top})
         self.actions = possible_actions
-        [print('Possible action found. {} ({}) bottle {} into {} ({}) bottle {}'.format(action['water'].color,
-                                                                                        action['water'].size,
-                                                                                        action['water'].bottle,
-                                                                                        action['compatible'].color,
-                                                                                        action['compatible'].size,
-                                                                                        action['compatible'].bottle))
-         for action in self.actions]
+        #[print('Possible action found. {} ({}) bottle {} into {} ({}) bottle {}'.format(action['water'].color,
+        #                                                                                action['water'].size,
+        #                                                                                action['water'].bottle,
+        #                                                                                action['compatible'].color,
+        #                                                                                action['compatible'].size,
+        #                                                                                action['compatible'].bottle))
+        # for action in self.actions]
         return possible_actions
 
     def move_water(self, from_bottle, to_bottle):
