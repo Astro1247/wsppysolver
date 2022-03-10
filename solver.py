@@ -109,7 +109,7 @@ class Bottle(object):
 
 
 class Solver(object):
-    def __init__(self, map):
+    def __init__(self, map, moves = 0):
         # validating map Expected to be like [[1,1,2,1], [2,2,1,2], [3,5,3,0], [0,0,0,0]], starting from bottle bottom
         # where 0 = empty
         if not isinstance(map, list):
@@ -126,6 +126,7 @@ class Solver(object):
         self.map = map
         self.bottles = []
         self.solved = False
+        self.moves = moves
         for data in map:
             x = Bottle(data, self)
             self.bottles.append(x)
@@ -198,6 +199,7 @@ class Solver(object):
         elif source_bottle.get_top_data().size + target_bottle.get_top_data().bottle_position['to'] > 4:
             raise OverflowError("Target bottle will be overflowed")
         target_water = target_bottle.get_top_data()
+        self.moves += 1
         if target_water.color == 0:
             target_bottle.push_color(source_bottle.pull_top_color())
         else:

@@ -1,19 +1,22 @@
-from copy import copy
+import hashlib
+from copy import copy, deepcopy
 
 import action as action
 
+import solver
 from solver import Solver
 from threading import Thread
 
 active_threads = []
 done_moves = 0
+skipped_maps = 0
 
 
 def move_colors(solver, from_bottle, to_bottle):
     global done_moves
     done_moves += 1
-    new_solver = copy(solver)#Solver(solver.get_map())
-    print('Moving: {} => {}'.format(solver.bottles[from_bottle].get_mapped_data(), solver.bottles[to_bottle].get_mapped_data()))
+    new_solver = Solver(solver.get_map(), solver.moves)
+    #print('Moving: {} => {}'.format(solver.bottles[from_bottle].get_mapped_data(), solver.bottles[to_bottle].get_mapped_data()))
     result = new_solver.move_water(from_bottle, to_bottle)
     #print('Done moves: ', done_moves)
     return result
@@ -21,8 +24,8 @@ def move_colors(solver, from_bottle, to_bottle):
 
 if __name__ == '__main__':
     print("Welcome to Water Sorting Puzzle Solver developed by Astro1247 [WIP]")  # TODO remove [WIP] tag
-    print("Please, input colors or enter empty iput when done")
-    #map = [[1, 1, 1, 0], [2, 2, 2, 1], [2, 0, 0, 0], [0, 0, 0, 0]]  # [[]]
+    print("Please, input colors or just press ENTER, when done")
+    #map = [[1, 1, 1, 0], [2, 2, 2, 1], [2, 0, 0, 0], [0, 0, 0, 0]]
     map = [
         [1,2,3,4],
         [3,5,6,6],
@@ -77,33 +80,44 @@ if __name__ == '__main__':
     init_slv = Solver(map)
     init_slv.find_actions()
     slvs = [init_slv]
-    solved = None
-    while len(slvs) > 0 and solved is None:
+    known_maps = []
+    solved = []
+    while len(slvs) > 0:
         new_slvs = []
         for slv in slvs:
+            slv_map_hash = hashlib.sha256(str(slv.get_map()).encode('utf-8')).hexdigest()
+            if slv_map_hash in known_maps:
+                skipped_maps += 1
+                #print(f'skipped_maps: {skipped_maps}')
+                slvs.pop(slvs.index(slv))
+                continue
+            else:
+                known_maps.append(slv_map_hash)
             slv.check_solved()
             if slv.solved:
-                slvs = []
-                solved = slv
-                [print('SOLVED!\n') for _ in range(0,100)]
-                break
+                solved.append(slv)
+                if slv in slvs:
+                    slvs.pop(slvs.index(slv))
+                continue
             slv.find_actions()
             dumped = list(slv.get_map())
             for action in slv.actions:
-                if done_moves == 214:
-                    print('here')
-                    slv.find_actions()
-                new_slv = move_colors(Solver(list(slv.get_map())),
+                new_slv = move_colors(Solver(list(slv.get_map()), slv.moves),
                                       action['water'].bottle.index,
                                       action['compatible'].bottle.index)
                 new_slv.check_solved()
                 if new_slv.solved:
-                    slvs = []
-                    solved = new_slv
-                    [print('SOLVED!\n') for _ in range(0, 100)]
-                    break
+                    solved.append(slv)
+                    if slv in slvs:
+                        slvs.pop(slvs.index(slv))
+                    continue
                 new_slv.find_actions()
                 if len(new_slv.actions) > 0:
                     new_slvs.append(new_slv)
         slvs = new_slvs
+    print(f'Found {len(solved)} solutions\n'
+          f'Done {done_moves} moves\n'
+          f'Learned {len(known_maps)} maps')
+    for i in range(0,len(solved)):
+        print(f'#{i} Solved in {solved[i].moves} moves')
     print('Job finished')
